@@ -77,6 +77,7 @@ class Embedding(torch.nn.Module):
             self.embedding_module = torch.nn.Embedding
 
         # Position embedding (serial).
+        
         self.use_pos_emb = use_pos_emb
         if self.use_pos_emb:
             self.embedding_type = neox_args.pos_emb

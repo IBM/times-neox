@@ -29,6 +29,10 @@ _DATA_PARALLEL_GROUP = None
 # Pipeline parallel group that the current rank belongs to.
 _PIPE_PARALLEL_GROUP = None
 
+# Group with all first and last layers ranks
+_LAYER_GROUP = None
+_LAYER_SRC = None
+
 # A group used to sync during the IO process. Usually this is data_parallel_group(),
 # but with pipeline parallelism it must also involve the last stage (which is not in the
 # DP group of rank 0)
@@ -69,6 +73,8 @@ def initialize_model_parallel(model_parallel_size, topology=None, fp32_allreduce
     with a total of 16 GPUs, rank 0 to 7 belong to the first box and
     ranks 8 to 15 belong to the second box.
     """
+
+    
     if torch.distributed.get_rank() == 0:
         print("> initializing model parallel with size {}".format(model_parallel_size))
     # Get world size and rank. Ensure some consistencies.
@@ -110,6 +116,7 @@ def initialize_model_parallel(model_parallel_size, topology=None, fp32_allreduce
             if rank in pp_group:
                 _PIPE_PARALLEL_GROUP = group
 
+    
     # Build IO group
     global _IO_PARALLEL_GROUP
     if topology and topology.get_dim("pipe") > 1:
@@ -124,6 +131,31 @@ def initialize_model_parallel(model_parallel_size, topology=None, fp32_allreduce
             _IO_PARALLEL_GROUP = group
     else:
         _IO_PARALLEL_GROUP = get_data_parallel_group()
+
+
+    global _FP32_ALLREDUCE
+    assert _FP32_ALLREDUCE is None, "fp32_allreduce is already initialized"
+    _FP32_ALLREDUCE = fp32_allreduce
+
+    assert topology, "only supported initialization with topology"
+   
+    global _LAYER_GROUP
+    global _LAYER_SRC
+    n_pipe = topology.get_dim("pipe")
+    for i in range(topology.get_dim("data")):
+        src = topology.get_rank(pipe = 0, model = 0, data = i)
+        group = topology.filter_match(pipe = 0, data = i)
+        if n_pipe > 1:
+            group += topology.filter_match(pipe = n_pipe - 1, data = i)
+
+        if rank == 0:
+            print(f"MPU LAYERS: {group} for data axis: {i}")
+        dist_group = torch.distributed.new_group(ranks=group)
+        if rank in group:
+            _LAYER_GROUP = dist_group
+            _LAYER_SRC = src
+    
+
 
     # Build the model parallel groups.
     global _MODEL_PARALLEL_GROUP
@@ -154,9 +186,12 @@ def initialize_model_parallel(model_parallel_size, topology=None, fp32_allreduce
             if i == (rank // model_parallel_size):
                 _MODEL_PARALLEL_GROUP = group
 
-    global _FP32_ALLREDUCE
-    assert _FP32_ALLREDUCE is None, "fp32_allreduce is already initialized"
-    _FP32_ALLREDUCE = fp32_allreduce
+
+
+    
+
+def get_model_layer_group_and_src():
+    return _LAYER_GROUP, _LAYER_SRC
 
 
 def model_parallel_is_initialized():

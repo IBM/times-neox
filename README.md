@@ -1,7 +1,121 @@
-[![GitHub issues](https://img.shields.io/github/issues/EleutherAI/gpt-neox)](https://github.com/EleutherAI/gpt-neox/issues)
-[<img src="https://raw.githubusercontent.com/wandb/assets/main/wandb-github-badge-28.svg" alt="Weights & Biases monitoring" height=20>](https://wandb.ai/eleutherai/neox)
+# Times-NeoX
 
-# GPT-NeoX
+This repository is a fork from [GPT-NeoX](https://github.com/EleutherAI/gpt-neox) to implement a model for univariate time series forecasting. The model is based on [lag-GPT](https://github.com/kashif/pytorch-transformer-ts/tree/main/lag-gpt) and [GluonTS](https://ts.gluon.ai/) with [GPT-NeoX](https://github.com/EleutherAI/gpt-neox) engine. To create Times-NeoX model, we replaced the embedding and softmax layers of GPT model with a projection layer and density model head, respectively.  
+
+![Alt text](images/TimesNeoX.svg?raw=true "GPT vs Times")
+
+## Training and inference
+We adapted ***train.py*** and ***generate.py*** from GPT-NeoX training and inference scripts, the new scripts have a suffix "-times": train-times.py and generate-times.py. GPT-NeoX original scripts were renamed into trainGPT.py and generateGPT.py. Please refer to GPT-NeoX documentation how to launch the scripts.
+
+## Config files
+Please see an example of config file in config/times_config folder. 
+
+## Options
+The model uses most of the options of GPT-NeoX (please see documentation for GPT-NeoX below) with an addition of "times_args" arguments: 
+
+```json
+"times_args": {
+    "context_length": 1024,
+    "prediction_length": 17,
+    "scaling": "std",
+    "shuffle_buffer_length": 1000,
+    "padding_value": 0,
+    "data_seed": 10,
+
+    "inference": {
+      "num_test_batches": 2,
+      "file_name": "output.zarr",
+      "chunk_size": 128
+    },
+
+    "datasets":{
+
+      "train": [
+        "airpassengers", "australian_electricity_demand", "car_parts_without_missing",
+      ],
+      "validation": [
+        "cif_2016", "covid_deaths", "electricity", "electricity_weekly", "exchange_rate",
+      ],
+      "test":[
+        "airpassengers", "australian_electricity_demand",
+        "cif_2016", "covid_deaths", "electricity", "electricity_weekly", "exchange_rate",
+      ],
+
+    "augmentation": {
+      "enabled": false,
+      "prob": 0.5,
+      "transforms": {
+          "freq_mask": {
+              "weight": 0.0,
+              "options": {
+                  "rate": 0.01
+              }
+          },
+          "freq_mix": {
+              "weight": 0.0,
+              "options": {
+                  "rate": 0.01
+              }
+          },
+          "permutation": {
+              "weight": 0.0,
+              "options": {
+                  "max_segments": 7,
+                  "seg_mode": "random"
+              }
+          },
+          "rotation": {
+              "weight": 0.0
+          },
+          "magnitude_warp": {
+              "weight": 0.0,
+              "options": {
+                  "sigma": 0.7,
+                  "knot": 4
+              }
+          },
+          "time_warp": {
+              "weight": 0.0,
+              "options": {
+                  "sigma": 0.7,
+                  "knot": 4
+              }
+          },
+          "window_slice": {
+              "weight": 0.0,
+              "options": {
+                  "reduce_ratio": 0.7,
+              }
+          },
+          "window_warp": {
+              "weight": 1.0,
+              "options": {
+                  "window_ratio": 0.2,
+                  "scales": [0.5, 2.0],
+              }
+          }
+      }
+    },
+  }
+}
+```
+
+### Model input
+The dataloaders sample intervals from dataset time series of **context_length** + **prediction_length** lengths and pseudo-shuffle samples with **shuffle_buffer_length**. **data_seed** sets a seed for dataloaders. Not-observed values in datasets are replaced with **padding_value**. During training of the autoregressive model, values in context and prediction windows are treated the same. However, input time series values are normalized using **scaling** scaler trained on context window.
+During inference stage, the minimum length of the input is of **context_length**.
+
+### Datasets
+**datasets** option sets the list of training, validation, and testing datasets from GluonTS library and the list of possible augmentations (see below).
+
+### Augmentation
+Augmentation of time-series is set in the **augmentation** option. **prob** defines the probability to apply augmentation. Each transform probability is weighted with **weight** option. 
+
+### Inference
+
+Use ***generate-times.py*** to predict time series for GluonTS datasets from the **test** list. Specify number of batches for inference in **num_test_batches**. Results are saved into a file with [zarr](https://zarr.readthedocs.io/en/stable/) format. Each data-parallel partition writes into a separate group of the zarr file. Groups have *ground_truth*, *past_target*, and *output* arrays. *past_target* is a context window. *ground_truth* is a ground truth for the future window, *output* is model output for the future window. Please see ***print_zarr.py*** in [tools](/tools/) folder to create graphs of series from zarr file and save them to PDF.    
+
+
+# README from GPT-NeoX
 
 This repository records [EleutherAI](https://www.eleuther.ai)'s library for training large-scale language models on GPUs. Our current framework is based on NVIDIA's [Megatron Language Model](https://github.com/NVIDIA/Megatron-LM) and has been augmented with techniques from [DeepSpeed](https://www.deepspeed.ai) as well as some novel optimizations. We aim to make this repo a centralized and accessible place to gather techniques for training large-scale autoregressive language models, and accelerate research into large-scale training.
 

@@ -1,0 +1,217 @@
+{
+  #"save": "save",
+  #"load": "save",
+  #"checkpoint_factor": 1000,
+  #"extra_save_iters": [10, 20, 30],
+  #"keep_last_n_checkpoints": 3,
+  #"checkpoint-scale": "linear",
+
+  "gradient_accumulation_steps": 1,
+
+  "checkpoint": {
+    "tag_validation":"Warn",
+    "load_universal":false,
+    "use_node_local_storage":false,
+    "parallel_write": {
+        "pipeline_stage": false
+    },
+  },
+
+  # For TFLOPS calculation
+  "seq_length": 1040,
+
+
+  "num_gpus": 2,
+  # parallelism settings
+  "pipe_parallel_size": 2,
+  "model_parallel_size": 1,
+
+  "times_args": {
+    "context_length": 1024,
+    "prediction_length": 10,
+    "scaling": "std",
+    "shuffle_buffer_length": 1000,
+    "padding_value": 0,
+    "data_seed": 10,
+
+    "inference": {
+      "num_test_batches": 1,
+      "file_name": "output.zarr",
+      "chunk_size": 128
+    },
+
+    "datasets":{
+      "train": [
+        "airpassengers", "australian_electricity_demand", "car_parts_without_missing",
+        "cif_2016", "covid_deaths", "electricity", "electricity_weekly", "exchange_rate",
+        "fred_md", "hospital", "kaggle_web_traffic_weekly", "kdd_cup_2018_without_missing", 
+        "london_smart_meters_without_missing", "nn5_daily_with_missing", "nn5_weekly", "pedestrian_counts",
+        "rideshare_without_missing", "saugeenday", "solar-energy", "solar_10_minutes", "solar_weekly", "taxi_30min",
+        "temperature_rain_without_missing", "tourism_monthly", "uber_tlc_daily", "uber_tlc_hourly", "vehicle_trips_without_missing",
+        "weather", "wiki-rolling_nips", "m4_daily", "m4_hourly", "m4_monthly", "m4_quarterly", "m4_yearly", "wind_farms_without_missing"
+      ],
+      "validation": [
+        "airpassengers", "australian_electricity_demand", "car_parts_without_missing",
+        "cif_2016", "covid_deaths", "electricity", "electricity_weekly", "exchange_rate",
+        "fred_md", "hospital", "kaggle_web_traffic_weekly", "kdd_cup_2018_without_missing", 
+        "london_smart_meters_without_missing", "nn5_daily_with_missing", "nn5_weekly", "pedestrian_counts",
+        "rideshare_without_missing", "saugeenday", "solar-energy", "solar_10_minutes", "solar_weekly", "taxi_30min",
+        "temperature_rain_without_missing", "tourism_monthly", "uber_tlc_daily", "uber_tlc_hourly", "vehicle_trips_without_missing",
+        "weather", "wiki-rolling_nips", "m4_daily", "m4_hourly", "m4_monthly", "m4_quarterly", "m4_yearly", "wind_farms_without_missing"
+      ],
+      "test":[
+        "airpassengers", "australian_electricity_demand",
+      ],
+
+      "augmentation": {
+        "enabled": true,
+        "prob": 0.3,
+        "transforms": {
+            "freq_mask": {
+                "weight": 1.0,
+                "options": {
+                    "rate": 0.01
+                }
+            },
+            "freq_mix": {
+                "weight": 1.0,
+                "options": {
+                    "rate": 0.01
+                }
+            },
+            "permutation": {
+                "weight": 1.0,
+                "options": {
+                    "max_segments": 7,
+                    "seg_mode": "random"
+                }
+            },
+            "rotation": {
+                "weight": 1.0
+            },
+            "magnitude_warp": {
+                "weight": 1.0,
+                "options": {
+                    "sigma": 0.7,
+                    "knot": 4
+                }
+            },
+            "time_warp": {
+                "weight": 1.0,
+                "options": {
+                    "sigma": 0.7,
+                    "knot": 4
+                }
+            },
+            "window_slice": {
+                "weight": 1.0,
+                "options": {
+                    "reduce_ratio": 0.7,
+                }
+            },
+            "window_warp": {
+                "weight": 1.0,
+                "options": {
+                    "window_ratio": 0.2,
+                    "scales": [0.5, 2.0],
+                }
+            }
+        }
+      },
+
+
+    }
+  },  
+
+  # model settings
+  "num_layers": 10,
+  "hidden_size": 640,
+  "num_attention_heads": 10,
+  "max_position_embeddings": 2048,
+  "pos_emb": "rotary",
+  "rotary_pct": 0.25,
+  "gpt_j_residual": true,
+  "output_layer_parallelism": "column",
+
+  # these should provide some speedup but takes a while to build, set to true if desired
+  "scaled_upper_triang_masked_softmax_fusion": false,
+  "bias_gelu_fusion": false,
+
+  # init methods
+  "init_method": "small_init",
+  "output_layer_init_method": "wang_init",
+
+  # optimizer settings
+  "optimizer": {
+    "type": "Adam",
+    "params": {
+      "lr": 0.0008,
+      "betas": [0.9, 0.95],
+      "eps": 1.0e-8,
+    }
+  },
+  "min_lr": 0.00008,
+
+  # for all zero_optimization options, see https://www.deepspeed.ai/docs/config-json/#zero-optimizations-for-fp16-training
+  "zero_optimization": {
+    "stage": 1,
+    "allgather_partitions": True,
+    "allgather_bucket_size": 500000000,
+    "overlap_comm": True,
+    "reduce_scatter": True,
+    "reduce_bucket_size": 500000000,
+    "contiguous_gradients": True,
+  },
+
+  "csv_monitor": {
+    "enabled": true,
+    "output_path": "logs",
+    "job_name": "debug_run",
+  },
+
+  # batch / data settings
+  "train_micro_batch_size_per_gpu": 32,
+  "gas": 1,
+  "data_impl": "mmap",
+  "num_workers": 1,
+
+  # activation checkpointing
+  "checkpoint_activations": true,
+  "checkpoint_num_layers": 1,
+  "partition_activations": true,
+  "synchronize_each_layer": true,
+
+  # regularization
+  "gradient_clipping": 1.0,
+  "weight_decay": 0.1,
+  "hidden_dropout": 0,
+  "attention_dropout": 0,
+
+  "precision": "fp32", 
+
+  # precision settings
+  "fp16": {
+    "fp16": false,
+    "enabled": false,
+    "loss_scale": 0,
+    "loss_scale_window": 1000,
+    "initial_scale_power": 12,
+    "hysteresis": 2,
+    "min_loss_scale": 1,
+  },
+
+  # misc. training settings
+  "train_iters": 143000,
+  "lr_decay_iters": 143000,
+  "distributed_backend": "nccl",
+  "lr_decay_style": "cosine",
+  "warmup": 0.01,
+  #"eval_interval": 100000,
+  "eval_interval": 30,
+  "eval_iters": 10,
+
+  # logging
+  "log_interval": 10,
+  "steps_per_print": 10,
+  "wall_clock_breakdown": true,
+}

@@ -33,7 +33,7 @@ def main():
     if wandb_token is not None:
         deepspeed.launcher.runner.EXPORT_ENVS.append("WANDB_API_KEY")
         os.environ["WANDB_API_KEY"] = wandb_token
-
+    
     deepspeed.launcher.runner.main(deepspeed_main_args)
 
 

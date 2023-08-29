@@ -45,6 +45,7 @@ from .neox_args import (
     NeoXArgsTextgen,
     NeoXArgsOptimizer,
     NeoXArgsLRScheduler,
+    NeoXArgsTimesModel,
     ATTENTION_TYPE_CHOICES,
 )
 
@@ -95,6 +96,7 @@ BASE_CLASSES = [
     NeoXArgsLogging,
     NeoXArgsTextgen,
     NeoXArgsOther,
+    NeoXArgsTimesModel
 ]
 
 DEEPSPEED_ARG_CLASSES = [NeoXArgsDeepspeedRunner, NeoXArgsDeepspeedConfig]
@@ -423,12 +425,16 @@ class NeoXArgs(*BASE_CLASSES):
         megatron_config = json.loads(
             base64.urlsafe_b64decode(args_parsed.megatron_config).decode("utf-8")
         )
-        if args_parsed.deepspeed_config is not None:
+        
+        
+        if not overwrite_values and args_parsed.deepspeed_config is not None:
             overwrite_values = cls.set_up_autotuning(
                 args_parsed.deepspeed_config, overwrite_values
             )
+        
         if overwrite_values is not None:
             megatron_config.update(overwrite_values)
+        
         return cls.from_dict(args_dict=megatron_config)
 
     @staticmethod
@@ -546,6 +552,7 @@ class NeoXArgs(*BASE_CLASSES):
         # get deepspeed_config
         args_list.append("--deepspeed_config")
 
+        
         if self.autotuning_run is not None:
             ds_fp = cwd / Path("ds_config.json")
             if self.rank == 0:
@@ -557,6 +564,8 @@ class NeoXArgs(*BASE_CLASSES):
                 json.dumps(self.deepspeed_config).encode("utf-8")
             ).decode("utf-8")
             args_list.append(encoded_ds_config)
+
+
 
         # get all config values
         args_list.append("--megatron_config")

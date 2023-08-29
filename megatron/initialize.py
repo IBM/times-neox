@@ -166,7 +166,8 @@ def _initialize_distributed(neox_args):
     # this does pipe on the most outside, then data, then model.
     # PipeModelDataParallelTopology is just a wrapper over ProcessTopology that predefines this order.
     topo = PipeModelDataParallelTopology(num_pp=pp, num_mp=mp, num_dp=dp)
-
+    
+    
     # Offset base seeds for the interior pipeline stages.
     # TODO: adjust last stage too once IO is improved.
     stage_id = topo.get_coord(rank=torch.distributed.get_rank()).pipe

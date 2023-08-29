@@ -85,6 +85,11 @@ class NeoXArgsParallelism(NeoXArgsTemplate):
 
 
 @dataclass
+class NeoXArgsTimesModel(NeoXArgsTemplate):
+    times_args: dict = None
+
+
+@dataclass
 class NeoXArgsModel(NeoXArgsTemplate):
     """
     Model Arguments
