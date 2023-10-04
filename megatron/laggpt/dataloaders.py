@@ -82,7 +82,7 @@ def get_training_data_loader(
     
     data = transform.apply(data, is_train=True)
     
-    sampler = ExpectedNumInstanceSampler(num_instances=1.0, min_future=prediction_length)
+    sampler = ExpectedNumInstanceSampler(num_instances=1.0, min_instances=1, min_future=prediction_length)
     instance_splitter = create_instance_splitter(sampler, prediction_length, past_length, padding_value)
     data = instance_splitter.apply(Cyclic(data).stream(), is_train=True)
     
