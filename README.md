@@ -1,4 +1,4 @@
-# Times-NeoX
+# Times-NeoX 
 
 This repository is a fork from [GPT-NeoX](https://github.com/EleutherAI/gpt-neox) to implement a model for univariate time series forecasting. The model is based on [lag-GPT](https://github.com/kashif/pytorch-transformer-ts/tree/main/lag-gpt) and [GluonTS](https://ts.gluon.ai/) with [GPT-NeoX](https://github.com/EleutherAI/gpt-neox) engine. To create Times-NeoX model, we replaced the embedding and softmax layers of GPT model with a projection layer and density model head, respectively.  
 
